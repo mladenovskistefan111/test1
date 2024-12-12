@@ -10,7 +10,7 @@ on:
 
 jobs:
   bump-version:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       # Step 1: Checkout the repository
@@ -64,8 +64,5 @@ jobs:
       # Step 4: Create and push the new tag
       - name: Create and push tag
         run: |
-          # Configure git to use the personal access token
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git tag ${{ env.new_version }}
-          git push https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/mladenovskistefan111/test1.git ${{ env.new_version }}
+          git push origin ${{ env.new_version }}
