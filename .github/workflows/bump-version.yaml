@@ -1,12 +1,9 @@
 name: Bump Version Tag
 
 on:
-  workflow_dispatch:
-    inputs:
-      bump_type:
-        description: "Type of version bump (major, minor, patch)"
-        required: true
-        default: "patch"
+  push:
+    branches:
+      - main
 
 jobs:
   bump-version:
@@ -23,8 +20,16 @@ jobs:
       - name: Fetch tags
         run: git fetch --tags
 
-      # Step 3: Determine the next version
-      - name: Determine next version
+      # Step 3: Get the latest commit message
+      - name: Get latest commit message
+        id: commit-message
+        run: |
+          commit_message=$(git log -1 --pretty=%B)
+          echo "Commit message: $commit_message"
+          echo "commit_message=$commit_message" >> $GITHUB_ENV
+
+      # Step 4: Determine the bump type from commit message
+      - name: Determine version bump
         id: bump
         run: |
           # Get the latest tag
@@ -38,32 +43,25 @@ jobs:
             minor=$(echo $latest_tag | cut -d. -f2)
             patch=$(echo $latest_tag | cut -d. -f3)
 
-            # Increment based on bump type
-            case "${{ github.event.inputs.bump_type }}" in
-              major)
-                major=$((major + 1))
-                minor=0
-                patch=0
-                ;;
-              minor)
-                minor=$((minor + 1))
-                patch=0
-                ;;
-              patch)
-                patch=$((patch + 1))
-                ;;
-              *)
-                echo "Invalid bump type: ${{ github.event.inputs.bump_type }}"
-                exit 1
-                ;;
-            esac
+            # Determine the bump type based on the commit message
+            if [[ "${{ env.commit_message }}" == *"major"* ]]; then
+              major=$((major + 1))
+              minor=0
+              patch=0
+            elif [[ "${{ env.commit_message }}" == *"minor"* ]]; then
+              minor=$((minor + 1))
+              patch=0
+            else
+              patch=$((patch + 1))
+            fi
+
             new_version="v$major.$minor.$patch"
           fi
 
           echo "new_version=$new_version" >> $GITHUB_ENV
           echo "New version: $new_version"
 
-      # Step 4: Create and push the new tag
+      # Step 5: Create and push the new tag
       - name: Create and push tag
         run: |
           git tag ${{ env.new_version }}
