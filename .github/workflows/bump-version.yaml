@@ -11,6 +11,8 @@ on:
 jobs:
   bump-version:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
 
     steps:
       # Step 1: Checkout the repository
