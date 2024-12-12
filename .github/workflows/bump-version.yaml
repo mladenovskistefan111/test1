@@ -1,0 +1,68 @@
+name: Bump Version Tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "Type of version bump (major, minor, patch)"
+        required: true
+        default: "patch"
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Fetch all tags
+      - name: Fetch tags
+        run: git fetch --tags
+
+      # Step 3: Determine the next version
+      - name: Determine next version
+        id: bump
+        run: |
+          # Get the latest tag
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          if [ -z "$latest_tag" ]; then
+            # Default to v1.0.0 if no tags exist
+            new_version="v1.0.0"
+          else
+            # Parse current version
+            major=$(echo $latest_tag | cut -d. -f1 | sed 's/v//')
+            minor=$(echo $latest_tag | cut -d. -f2)
+            patch=$(echo $latest_tag | cut -d. -f3)
+
+            # Increment based on bump type
+            case "${{ github.event.inputs.bump_type }}" in
+              major)
+                major=$((major + 1))
+                minor=0
+                patch=0
+                ;;
+              minor)
+                minor=$((minor + 1))
+                patch=0
+                ;;
+              patch)
+                patch=$((patch + 1))
+                ;;
+              *)
+                echo "Invalid bump type: ${{ github.event.inputs.bump_type }}"
+                exit 1
+                ;;
+            esac
+            new_version="v$major.$minor.$patch"
+          fi
+
+          echo "new_version=$new_version" >> $GITHUB_ENV
+          echo "New version: $new_version"
+
+      # Step 4: Create and push the new tag
+      - name: Create and push tag
+        run: |
+          git tag ${{ env.new_version }}
+          git push origin ${{ env.new_version }}
